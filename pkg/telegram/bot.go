@@ -2,36 +2,43 @@ package telegram
 
 import (
 	"log"
-	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shakareem/gigoseek/pkg/config"
 )
 
-func RunBot() {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_KEY"))
+type Bot struct {
+	bot           *tgbotapi.BotAPI
+	AuthServerURL string
+	responses     config.Responses
+}
+
+func NewBot(token string, authURL string, responses config.Responses) (*Bot, error) {
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		log.Panic(err)
+		return nil, err
 	}
 
-	bot.Debug = true
+	return &Bot{bot: bot, AuthServerURL: authURL, responses: responses}, err
+}
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+func (b *Bot) Start() error {
+	b.bot.Debug = true
+
+	log.Printf("Authorized on account %s", b.bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates := bot.GetUpdatesChan(u)
+	updates := b.bot.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		bot.Send(msg)
+		b.HandleMessage(update.Message)
 	}
+
+	return nil
 }
