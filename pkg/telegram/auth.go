@@ -19,11 +19,15 @@ var (
 	redirectURL = config.Get().AuthServerURL
 	auth        = spotifyauth.New(
 		spotifyauth.WithRedirectURL(redirectURL),
-		spotifyauth.WithScopes(spotifyauth.ScopeUserReadPrivate),
+		spotifyauth.WithScopes(
+			spotifyauth.ScopeUserLibraryRead,
+			spotifyauth.ScopeUserFollowRead,
+			spotifyauth.ScopeUserTopRead,
+		),
 		spotifyauth.WithClientID(config.Get().SpotifyClientID),
 		spotifyauth.WithClientSecret(config.Get().SpotifyClientSecret),
 	)
-	tokenChan = make(chan *oauth2.Token)
+	userInfoChan = make(chan userInfo)
 )
 
 func generateState() string {
@@ -40,6 +44,11 @@ type AuthServer struct {
 	storage storage.Storage
 }
 
+type userInfo struct {
+	chatID int64
+	token  *oauth2.Token
+}
+
 func NewAuthServer(storage storage.Storage) *AuthServer {
 	return &AuthServer{storage: storage}
 }
@@ -51,17 +60,15 @@ func (s *AuthServer) Run() error {
 	s.server = &http.Server{Addr: ":8080", Handler: handler}
 
 	go func() {
-		for token := range tokenChan {
-			// тут надо сохранять клиента в бд
-
-			// use the token to get an authenticated client
-			client := spotify.New(auth.Client(context.Background(), token)) // подумать про контексты
+		for userInfo := range userInfoChan {
+			s.storage.SaveToken(userInfo.chatID, *userInfo.token)
+			client := spotify.New(auth.Client(context.Background(), userInfo.token)) // подумать про контексты
 
 			user, err := client.CurrentUser(context.Background())
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println("New user logged in:", user.ID, user.DisplayName)
+			fmt.Println("New user logged in:", user.DisplayName, "\nchatID:", userInfo.chatID, "\ntoken:", userInfo.token.AccessToken)
 		}
 	}()
 
@@ -86,5 +93,9 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 
 	s.storage.SaveToken(chatID, *token) // тут подумать про указатели
 
-	tokenChan <- token
+	userInfoChan <- userInfo{chatID: chatID, token: token}
+
+	// тут мб посылать вебхук боту
+
+	http.Redirect(w, r, "https://web.telegram.org/k/#@gigoseek_bot", http.StatusSeeOther)
 }

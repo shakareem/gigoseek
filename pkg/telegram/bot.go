@@ -36,7 +36,10 @@ func (b *Bot) Start() error {
 			continue
 		}
 
-		b.handleMessage(update.Message)
+		err := b.handleMessage(update.Message)
+		if err != nil {
+			log.Printf("Error handling message: %v", err)
+		}
 	}
 
 	return nil
