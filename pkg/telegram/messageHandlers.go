@@ -16,18 +16,16 @@ const (
 	startCommand         = "start"
 	authCommand          = "auth"
 	helpCommand          = "help"
-	getFavouritesCommand = "get_favorites"
+	getFavouritesCommand = "favorites"
 )
 
 var responses = config.Get().Responses
 
-// тут надо будет по chat id понимать, от кого сообщение,
-// авторизирован ли пользователь и чота делать
 func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	response := tgbotapi.NewMessage(msg.Chat.ID, "")
 
 	if !msg.IsCommand() {
-		response.Text = "пока поддерживаются только команды" //TODO: help responses
+		response.Text = "пока поддерживаются только команды"
 	}
 
 	switch msg.Command() {
@@ -68,7 +66,6 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 		return fmt.Errorf("failed to get token: %w", err)
 	}
 
-	// Создаем контекст с таймаутом
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -91,7 +88,7 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 		return err
 	}
 
-	text := "Your favourite artists are:\n"
+	text := "Ваши любимые артисты:\n"
 	for i, artist := range artistsPage.Artists {
 		text += strconv.Itoa(i+1) + ". " + artist.SimpleArtist.Name + "\n"
 	}
