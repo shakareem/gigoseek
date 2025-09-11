@@ -2,36 +2,45 @@ package telegram
 
 import (
 	"log"
-	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shakareem/gigoseek/pkg/storage"
 )
 
-func RunBot() {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_API_KEY"))
+type Bot struct {
+	bot     *tgbotapi.BotAPI
+	storage storage.Storage
+}
+
+func NewBot(token string, storage storage.Storage) (*Bot, error) {
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		log.Panic(err)
+		return nil, err
 	}
 
-	bot.Debug = true
+	return &Bot{bot: bot, storage: storage}, err
+}
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+func (b *Bot) Start() error {
+	b.bot.Debug = true
+
+	log.Printf("Authorized on account %s", b.bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates := bot.GetUpdatesChan(u)
+	updates := b.bot.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		bot.Send(msg)
+		err := b.handleMessage(update.Message)
+		if err != nil {
+			log.Printf("Error handling message: %v", err)
+		}
 	}
+
+	return nil
 }

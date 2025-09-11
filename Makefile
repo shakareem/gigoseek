@@ -3,6 +3,8 @@
 build:
 	go build -o ./.bin/bot cmd/bot/main.go
 
+b: build
+
 fmt:
 	go fmt ./...
 
@@ -11,3 +13,5 @@ vet:
 
 run: build fmt vet
 	./.bin/bot
+
+r: run
