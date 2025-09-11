@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	startCommand         = "start"
-	authCommand          = "auth"
-	helpCommand          = "help"
-	getFavouritesCommand = "favorites"
+	startCommand      = "start"
+	authCommand       = "auth"
+	helpCommand       = "help"
+	favouritesCommand = "favorites"
 )
 
 var responses = config.Get().Responses
@@ -31,7 +31,7 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	switch msg.Command() {
 	case startCommand:
 		response.Text = responses.Start
-		_, err := b.bot.Send(response)
+		_, err := b.botAPI.Send(response)
 		if err != nil {
 			return err
 		}
@@ -44,13 +44,13 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 		return b.handleAuth(msg.Chat.ID)
 	case helpCommand:
 		response.Text = responses.Help
-	case getFavouritesCommand:
+	case favouritesCommand:
 		return b.handleFavouriteArtists(msg.Chat.ID)
 	default:
 		response.Text = responses.UnknownCommand
 	}
 
-	_, err := b.bot.Send(response)
+	_, err := b.botAPI.Send(response)
 	return err
 }
 
@@ -84,17 +84,17 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 
 	if len(artistsPage.Artists) == 0 {
 		response := tgbotapi.NewMessage(chatID, "No favourite artists found")
-		_, err = b.bot.Send(response)
+		_, err = b.botAPI.Send(response)
 		return err
 	}
 
-	text := "Ваши любимые артисты:\n"
+	text := responses.FavoriteArtists
 	for i, artist := range artistsPage.Artists {
 		text += strconv.Itoa(i+1) + ". " + artist.SimpleArtist.Name + "\n"
 	}
 
 	response := tgbotapi.NewMessage(chatID, text)
-	_, err = b.bot.Send(response)
+	_, err = b.botAPI.Send(response)
 	return err
 }
 
@@ -111,6 +111,6 @@ func (b *Bot) handleAuth(chatID int64) error {
 	url := auth.AuthURL(state)
 	response := tgbotapi.NewMessage(chatID, responses.AuthPrompt+url)
 
-	_, err := b.bot.Send(response)
+	_, err := b.botAPI.Send(response)
 	return err
 }

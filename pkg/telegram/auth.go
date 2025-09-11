@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/shakareem/gigoseek/pkg/storage"
 	"github.com/zmb3/spotify/v2"
@@ -42,6 +43,7 @@ func generateState() string {
 type AuthServer struct {
 	server  *http.Server
 	storage storage.Storage
+	bot     *tgbotapi.BotAPI // поле бота для сообщениях об авторизации
 }
 
 type userInfo struct {
@@ -49,8 +51,11 @@ type userInfo struct {
 	token  *oauth2.Token
 }
 
-func NewAuthServer(storage storage.Storage) *AuthServer {
-	return &AuthServer{storage: storage}
+func NewAuthServer(storage storage.Storage, bot *tgbotapi.BotAPI) *AuthServer {
+	return &AuthServer{
+		storage: storage,
+		bot:     bot,
+	}
 }
 
 func (s *AuthServer) Run() error {
@@ -61,7 +66,6 @@ func (s *AuthServer) Run() error {
 
 	go func() {
 		for userInfo := range userInfoChan {
-			s.storage.SaveToken(userInfo.chatID, *userInfo.token)
 			client := spotify.New(auth.Client(context.Background(), userInfo.token)) // подумать про контексты
 
 			user, err := client.CurrentUser(context.Background())
@@ -78,7 +82,6 @@ func (s *AuthServer) Run() error {
 func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 	receivedState := r.FormValue("state")
 
-	// Проверяем существование state и получаем chatID
 	chatID, err := s.storage.GetChatIDbyState(receivedState)
 	if err != nil {
 		http.Error(w, "Invalid state", http.StatusBadRequest)
@@ -91,11 +94,15 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	s.storage.SaveToken(chatID, *token) // тут подумать про указатели
+	s.storage.SaveToken(chatID, *token)
+	s.storage.DeleteState(receivedState)
+
+	msg := tgbotapi.NewMessage(chatID, config.Get().Responses.AuthSuccess)
+	if _, err := s.bot.Send(msg); err != nil {
+		log.Printf("Failed to send auth success message: %v", err)
+	}
 
 	userInfoChan <- userInfo{chatID: chatID, token: token}
-
-	// тут мб посылать вебхук боту
 
 	http.Redirect(w, r, "https://web.telegram.org/k/#@gigoseek_bot", http.StatusSeeOther)
 }

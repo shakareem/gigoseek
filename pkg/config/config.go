@@ -17,6 +17,7 @@ type Responses struct {
 	AuthFail          string `json:"auth_fail"`
 	Help              string `json:"help"`
 	UnknownCommand    string `json:"unknown_command"`
+	FavoriteArtists   string `json:"favorite_artists"`
 }
 
 type Config struct {

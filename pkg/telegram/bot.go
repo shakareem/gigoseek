@@ -8,28 +8,23 @@ import (
 )
 
 type Bot struct {
-	bot     *tgbotapi.BotAPI
+	botAPI  *tgbotapi.BotAPI
 	storage storage.Storage
 }
 
-func NewBot(token string, storage storage.Storage) (*Bot, error) {
-	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Bot{bot: bot, storage: storage}, err
+func NewBot(botAPI *tgbotapi.BotAPI, storage storage.Storage) *Bot {
+	return &Bot{botAPI: botAPI, storage: storage}
 }
 
 func (b *Bot) Start() error {
-	b.bot.Debug = true
+	b.botAPI.Debug = true
 
-	log.Printf("Authorized on account %s", b.bot.Self.UserName)
+	log.Printf("Authorized on account %s", b.botAPI.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates := b.bot.GetUpdatesChan(u)
+	updates := b.botAPI.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message == nil {
