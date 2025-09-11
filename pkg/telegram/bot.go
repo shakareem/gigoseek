@@ -4,22 +4,21 @@ import (
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/shakareem/gigoseek/pkg/config"
+	"github.com/shakareem/gigoseek/pkg/storage"
 )
 
 type Bot struct {
-	bot           *tgbotapi.BotAPI
-	AuthServerURL string
-	responses     config.Responses
+	bot     *tgbotapi.BotAPI
+	storage storage.Storage
 }
 
-func NewBot(token string, authURL string, responses config.Responses) (*Bot, error) {
+func NewBot(token string, storage storage.Storage) (*Bot, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Bot{bot: bot, AuthServerURL: authURL, responses: responses}, err
+	return &Bot{bot: bot, storage: storage}, err
 }
 
 func (b *Bot) Start() error {
@@ -37,7 +36,7 @@ func (b *Bot) Start() error {
 			continue
 		}
 
-		b.HandleMessage(update.Message)
+		b.handleMessage(update.Message)
 	}
 
 	return nil

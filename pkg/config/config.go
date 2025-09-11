@@ -3,27 +3,48 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 )
+
+const configFilePath = "configs/private.json"
 
 type Responses struct {
 	Start             string `json:"start"`
 	AlreadyAuthorized string `json:"already_authorized"`
-	// TODO others
+	AuthPrompt        string `json:"auth_prompt"`
+	AuthSuccess       string `json:"auth_success"`
+	AuthFail          string `json:"auth_fail"`
+	Help              string `json:"help"`
+	UnknownCommand    string `json:"unknown_command"`
 }
 
 type Config struct {
-	TelegramApiToken   string    `json:"telegram_api_token"`
-	SpotifyClientID    string    `json:"spotify_client_id"`
-	SpotifyClientToken string    `json:"spotify_client_token"`
-	AuthServerURL      string    `json:"auth_server_url"`
-	Responses          Responses `json:"responses"`
+	TelegramApiToken    string    `json:"telegram_api_token"`
+	SpotifyClientID     string    `json:"spotify_client_id"`
+	SpotifyClientSecret string    `json:"spotify_client_secret"`
+	AuthServerURL       string    `json:"auth_server_url"`
+	Responses           Responses `json:"responses"`
 }
 
-func LoadConfig(path string) (*Config, error) {
+var cfg *Config
+
+func Get() *Config {
+	if cfg == nil {
+		var err error
+		cfg, err = loadConfig(configFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return cfg
+}
+
+func loadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
+		return nil, fmt.Errorf("read config: %w", err)
 	}
 
 	var cfg Config

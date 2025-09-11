@@ -8,11 +8,23 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/shakareem/gigoseek/pkg/config"
+	"github.com/shakareem/gigoseek/pkg/storage"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
+	"golang.org/x/oauth2"
 )
 
-const redirectURI = "http://127.0.0.1:8080/callback"
+var (
+	redirectURL = config.Get().AuthServerURL
+	auth        = spotifyauth.New(
+		spotifyauth.WithRedirectURL(redirectURL),
+		spotifyauth.WithScopes(spotifyauth.ScopeUserReadPrivate),
+		spotifyauth.WithClientID(config.Get().SpotifyClientID),
+		spotifyauth.WithClientSecret(config.Get().SpotifyClientSecret),
+	)
+	tokenChan = make(chan *oauth2.Token)
+)
 
 func generateState() string {
 	b := make([]byte, 16)
@@ -23,51 +35,56 @@ func generateState() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-var (
-	auth  = spotifyauth.New(spotifyauth.WithRedirectURL(redirectURI), spotifyauth.WithScopes(spotifyauth.ScopeUserReadPrivate))
-	ch    = make(chan *spotify.Client)
-	state = generateState()
-)
+type AuthServer struct {
+	server  *http.Server
+	storage storage.Storage
+}
 
-func RunAuthServer() {
-	http.HandleFunc("/callback", completeAuth)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
-	})
+func NewAuthServer(storage storage.Storage) *AuthServer {
+	return &AuthServer{storage: storage}
+}
+
+func (s *AuthServer) Run() error {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/callback", s.completeAuth)
+
+	s.server = &http.Server{Addr: ":8080", Handler: handler}
+
 	go func() {
-		err := http.ListenAndServe(":8080", nil)
-		if err != nil {
-			log.Fatal(err)
+		for token := range tokenChan {
+			// тут надо сохранять клиента в бд
+
+			// use the token to get an authenticated client
+			client := spotify.New(auth.Client(context.Background(), token)) // подумать про контексты
+
+			user, err := client.CurrentUser(context.Background())
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("New user logged in:", user.ID, user.DisplayName)
 		}
 	}()
 
-	url := auth.AuthURL(state)
-	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
-
-	// wait for auth to complete
-	client := <-ch
-
-	// use the client to make calls that require authorization
-	user, err := client.CurrentUser(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("You are logged in as:", user.ID)
+	return s.server.ListenAndServe()
 }
 
-func completeAuth(w http.ResponseWriter, r *http.Request) {
-	tok, err := auth.Token(r.Context(), state, r)
+func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
+	receivedState := r.FormValue("state")
+
+	// Проверяем существование state и получаем chatID
+	chatID, err := s.storage.GetChatIDbyState(receivedState)
+	if err != nil {
+		http.Error(w, "Invalid state", http.StatusBadRequest)
+		return
+	}
+
+	token, err := auth.Token(r.Context(), receivedState, r)
 	if err != nil {
 		http.Error(w, "Couldn't get token", http.StatusForbidden)
 		log.Fatal(err)
 	}
-	if st := r.FormValue("state"); st != state {
-		http.NotFound(w, r)
-		log.Fatalf("State mismatch: %s != %s\n", st, state)
-	}
 
-	// use the token to get an authenticated client
-	client := spotify.New(auth.Client(r.Context(), tok))
-	fmt.Fprintf(w, "Login Completed!")
-	ch <- client
+	s.storage.SaveToken(chatID, *token) // тут подумать про указатели
+
+	tokenChan <- token
 }

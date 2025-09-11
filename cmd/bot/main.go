@@ -4,16 +4,23 @@ import (
 	"log"
 
 	"github.com/shakareem/gigoseek/pkg/config"
+	"github.com/shakareem/gigoseek/pkg/storage"
 	"github.com/shakareem/gigoseek/pkg/telegram"
 )
 
 func main() {
-	cfg, err := config.LoadConfig("configs/private.json")
-	if err != nil {
-		log.Fatal("cannot load config:", err)
-	}
+	cfg := config.Get()
 
-	bot, err := telegram.NewBot(cfg.TelegramApiToken, cfg.AuthServerURL, cfg.Responses)
+	storage := storage.NewInMemoryStorage()
+
+	authServer := telegram.NewAuthServer(storage)
+	go func() {
+		if err := authServer.Run(); err != nil {
+			log.Fatal("cannot start auth server", err)
+		}
+	}()
+
+	bot, err := telegram.NewBot(cfg.TelegramApiToken, storage)
 	if err != nil {
 		log.Fatal("cannot create bot", err)
 	}
