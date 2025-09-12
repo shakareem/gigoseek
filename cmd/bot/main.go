@@ -12,7 +12,12 @@ import (
 func main() {
 	storage := storage.NewInMemoryStorage()
 
-	botAPI, err := tgbotapi.NewBotAPI(config.Get().TelegramApiToken)
+	cfg := config.Get()
+	if cfg.TelegramApiToken == "" || cfg.SpotifyClientID == "" || cfg.SpotifyClientSecret == "" {
+		log.Fatal("Required private config values not found in configs/private.json")
+	}
+
+	botAPI, err := tgbotapi.NewBotAPI(cfg.TelegramApiToken)
 	if err != nil {
 		log.Fatal("cannot create bot", err)
 	}

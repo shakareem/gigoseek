@@ -43,7 +43,7 @@ func generateState() string {
 type AuthServer struct {
 	server  *http.Server
 	storage storage.Storage
-	bot     *tgbotapi.BotAPI // поле бота для сообщениях об авторизации
+	botAPI  *tgbotapi.BotAPI // поле бота для сообщениях об авторизации
 }
 
 type userInfo struct {
@@ -51,10 +51,10 @@ type userInfo struct {
 	token  *oauth2.Token
 }
 
-func NewAuthServer(storage storage.Storage, bot *tgbotapi.BotAPI) *AuthServer {
+func NewAuthServer(storage storage.Storage, botAPI *tgbotapi.BotAPI) *AuthServer {
 	return &AuthServer{
 		storage: storage,
-		bot:     bot,
+		botAPI:  botAPI,
 	}
 }
 
@@ -98,7 +98,7 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 	s.storage.DeleteState(receivedState)
 
 	msg := tgbotapi.NewMessage(chatID, config.Get().Responses.AuthSuccess)
-	if _, err := s.bot.Send(msg); err != nil {
+	if _, err := s.botAPI.Send(msg); err != nil {
 		log.Printf("Failed to send auth success message: %v", err)
 	}
 
