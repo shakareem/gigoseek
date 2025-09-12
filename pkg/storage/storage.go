@@ -15,18 +15,24 @@ type Storage interface {
 	SaveToken(chatID int64, token oauth2.Token) error
 	GetToken(chatID int64) (oauth2.Token, error)
 	DeleteToken(chatID int64) error
+
+	SaveCity(chatID int64, city string) error
+	GetCity(chatID int64) (string, error)
+	DeleteCity(chatID int64) error
 }
 
 // tmp
 type InMemoryStorage struct {
 	states map[string]int64
 	tokens map[int64]oauth2.Token
+	cities map[int64]string
 }
 
 func NewInMemoryStorage() *InMemoryStorage {
 	return &InMemoryStorage{
 		states: make(map[string]int64),
 		tokens: make(map[int64]oauth2.Token),
+		cities: make(map[int64]string),
 	}
 }
 
@@ -64,5 +70,23 @@ func (s *InMemoryStorage) GetToken(chatID int64) (oauth2.Token, error) {
 
 func (s *InMemoryStorage) DeleteToken(chatID int64) error {
 	delete(s.tokens, chatID)
+	return nil
+}
+
+func (s *InMemoryStorage) SaveCity(chatID int64, city string) error {
+	s.cities[chatID] = city
+	return nil
+}
+
+func (s *InMemoryStorage) GetCity(chatID int64) (string, error) {
+	city, ok := s.cities[chatID]
+	if !ok {
+		return "", errors.New("city not found in storage")
+	}
+	return city, nil
+}
+
+func (s *InMemoryStorage) DeleteCity(chatID int64) error {
+	delete(s.cities, chatID)
 	return nil
 }

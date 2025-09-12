@@ -37,7 +37,6 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 		}
 
 		if !b.Authorized(msg.Chat.ID) {
-			// мб тут надо проверять отдельно token expired
 			return b.handleAuth(msg.Chat.ID)
 		}
 	case authCommand:
