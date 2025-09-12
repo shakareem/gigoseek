@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/zmb3/spotify/v2"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -54,6 +54,52 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	return err
 }
 
+func (b *Bot) Authorized(chatID int64) bool {
+	token, err := b.storage.GetToken(chatID)
+	if err != nil {
+		log.Printf("Failed to get token for chat %d: %v", chatID, err)
+		return false
+	}
+
+	if !token.Valid() {
+		err = b.refreshExpiredToken(chatID, &token)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+		return b.Authorized(chatID)
+	}
+
+	return true
+}
+
+func (b *Bot) refreshExpiredToken(chatID int64, token *oauth2.Token) error {
+	newToken, err := auth.RefreshToken(context.Background(), token)
+	if err != nil {
+		return fmt.Errorf("failed to refresh access token for chat %d: %w", chatID, err)
+	}
+	b.storage.DeleteToken(chatID)
+	err = b.storage.SaveToken(chatID, *newToken)
+	if err != nil {
+		return fmt.Errorf("failed to save refreshed token: %w", err)
+	}
+
+	log.Printf("Token for chat %d refreshed successfully", chatID)
+	return nil
+}
+
+func (b *Bot) handleAuth(chatID int64) error {
+	state := generateState()
+
+	b.storage.SaveState(state, chatID)
+
+	url := auth.AuthURL(state)
+	response := tgbotapi.NewMessage(chatID, responses.AuthPrompt+url)
+
+	_, err := b.botAPI.Send(response)
+	return err
+}
+
 func (b *Bot) handleFavouriteArtists(chatID int64) error {
 	if !b.Authorized(chatID) {
 		return b.handleAuth(chatID)
@@ -90,27 +136,10 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 
 	text := responses.FavoriteArtists
 	for i, artist := range artistsPage.Artists {
-		text += strconv.Itoa(i+1) + ". " + artist.SimpleArtist.Name + "\n"
+		text += fmt.Sprintf("%d. %s\n", i+1, artist.SimpleArtist.Name)
 	}
 
 	response := tgbotapi.NewMessage(chatID, text)
 	_, err = b.botAPI.Send(response)
-	return err
-}
-
-func (b *Bot) Authorized(chatID int64) bool {
-	token, err := b.storage.GetToken(chatID)
-	return err == nil && token.Valid()
-}
-
-func (b *Bot) handleAuth(chatID int64) error {
-	state := generateState()
-
-	b.storage.SaveState(state, chatID)
-
-	url := auth.AuthURL(state)
-	response := tgbotapi.NewMessage(chatID, responses.AuthPrompt+url)
-
-	_, err := b.botAPI.Send(response)
 	return err
 }

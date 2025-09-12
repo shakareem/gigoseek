@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"log"
 
 	"golang.org/x/oauth2"
 )
@@ -16,6 +17,7 @@ type Storage interface {
 	DeleteToken(chatID int64) error
 }
 
+// tmp
 type InMemoryStorage struct {
 	states map[string]int64
 	tokens map[int64]oauth2.Token
@@ -56,6 +58,7 @@ func (s *InMemoryStorage) GetToken(chatID int64) (oauth2.Token, error) {
 	if !ok {
 		return oauth2.Token{}, errors.New("client not found in storage")
 	}
+	log.Printf("Token for chat %d retrieved successfully:\n%v", chatID, token)
 	return token, nil
 }
 
