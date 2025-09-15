@@ -16,6 +16,11 @@ func NewBot(botAPI *tgbotapi.BotAPI, storage storage.Storage) *Bot {
 	return &Bot{botAPI: botAPI, storage: storage}
 }
 
+const (
+	StateIdle storage.ChatState = iota
+	StateWaitingForCity
+)
+
 func (b *Bot) Start() error {
 	b.botAPI.Debug = true
 
@@ -31,11 +36,39 @@ func (b *Bot) Start() error {
 			continue
 		}
 
-		err := b.handleMessage(update.Message)
+		chatState, err := b.storage.GetChatState(update.Message.Chat.ID)
+		if err != nil {
+			chatState = StateIdle
+			b.storage.SaveChatState(update.Message.Chat.ID, StateIdle)
+		}
+
+		if chatState == StateWaitingForCity {
+			err = b.handleCityMessage(update.Message.Chat.ID, update.Message.Text)
+			if err != nil {
+				log.Printf("Error handling city message: %v", err)
+			}
+			continue
+		}
+
+		err = b.handleMessage(update.Message)
 		if err != nil {
 			log.Printf("Error handling message: %v", err)
 		}
 	}
 
 	return nil
+}
+
+func (b *Bot) handleCityMessage(chatID int64, city string) error {
+	// TODO: проверять валидность города (мб через timepad)
+
+	b.storage.SaveCity(chatID, city)
+	log.Printf("City for chat %d set successfully", chatID)
+
+	b.storage.SaveChatState(chatID, StateIdle)
+
+	msg := tgbotapi.NewMessage(chatID, "Город успешно установлен!")
+	_, err := b.botAPI.Send(msg)
+
+	return err
 }

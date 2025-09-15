@@ -13,7 +13,7 @@ run: build fmt vet
 	./.bin/bot
 
 cfg:
-	go run cmd/scripts/createPrivateConfig.go
+	go run scripts/createPrivateConfig.go
 
 b: build
 r: run

@@ -10,14 +10,14 @@ import (
 const configFilePath = "configs/private.json"
 
 type Responses struct {
-	Start             string `json:"start"`
-	AlreadyAuthorized string `json:"already_authorized"`
-	AuthPrompt        string `json:"auth_prompt"`
-	AuthSuccess       string `json:"auth_success"`
-	AuthFail          string `json:"auth_fail"`
-	Help              string `json:"help"`
-	UnknownCommand    string `json:"unknown_command"`
-	FavoriteArtists   string `json:"favorite_artists"`
+	Start           string `json:"start"`
+	EnterCity       string `json:"enter_city"`
+	AuthPrompt      string `json:"auth_prompt"`
+	AuthSuccess     string `json:"auth_success"`
+	AuthFail        string `json:"auth_fail"`
+	Help            string `json:"help"`
+	UnknownCommand  string `json:"unknown_command"`
+	FavoriteArtists string `json:"favorite_artists"`
 }
 
 type Config struct {

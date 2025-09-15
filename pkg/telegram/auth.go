@@ -84,6 +84,7 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 
 	chatID, err := s.storage.GetChatIDbyState(receivedState)
 	if err != nil {
+		log.Println("HTTP request to auth server with invalid state")
 		http.Error(w, "Invalid state", http.StatusBadRequest)
 		return
 	}

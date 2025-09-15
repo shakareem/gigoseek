@@ -17,6 +17,7 @@ const (
 	authCommand       = "auth"
 	helpCommand       = "help"
 	favouritesCommand = "favorites"
+	changeCityCommand = "changecity"
 )
 
 var responses = config.Get().Responses
@@ -30,21 +31,15 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 
 	switch msg.Command() {
 	case startCommand:
-		response.Text = responses.Start
-		_, err := b.botAPI.Send(response)
-		if err != nil {
-			return err
-		}
-
-		if !b.Authorized(msg.Chat.ID) {
-			return b.handleAuth(msg.Chat.ID)
-		}
+		return b.handleStart(msg.Chat.ID)
 	case authCommand:
 		return b.handleAuth(msg.Chat.ID)
 	case helpCommand:
 		response.Text = responses.Help
 	case favouritesCommand:
 		return b.handleFavouriteArtists(msg.Chat.ID)
+	case changeCityCommand:
+		return b.handleSetCity(msg.Chat.ID)
 	default:
 		response.Text = responses.UnknownCommand
 	}
@@ -53,7 +48,34 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	return err
 }
 
-func (b *Bot) Authorized(chatID int64) bool {
+func (b *Bot) handleStart(chatID int64) error {
+	response := tgbotapi.NewMessage(chatID, responses.Start)
+	_, err := b.botAPI.Send(response)
+	if err != nil {
+		return err
+	}
+
+	if !b.isAuthorized(chatID) {
+		err = b.handleAuth(chatID)
+		if err != nil {
+			return err
+		}
+		// TODO: мб ждать пока авторизуется
+	}
+
+	if !b.isCitySet(chatID) {
+		return b.handleSetCity(chatID)
+	}
+
+	return nil
+}
+
+func (b *Bot) isCitySet(chatID int64) bool {
+	_, err := b.storage.GetCity(chatID)
+	return err == nil
+}
+
+func (b *Bot) isAuthorized(chatID int64) bool {
 	token, err := b.storage.GetToken(chatID)
 	if err != nil {
 		log.Printf("Failed to get token for chat %d: %v", chatID, err)
@@ -66,7 +88,7 @@ func (b *Bot) Authorized(chatID int64) bool {
 			log.Println(err)
 			return false
 		}
-		return b.Authorized(chatID)
+		return b.isAuthorized(chatID)
 	}
 
 	return true
@@ -99,8 +121,21 @@ func (b *Bot) handleAuth(chatID int64) error {
 	return err
 }
 
+func (b *Bot) handleSetCity(chatID int64) error {
+	msg := tgbotapi.NewMessage(chatID, responses.EnterCity)
+	_, err := b.botAPI.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	b.storage.SaveChatState(chatID, StateWaitingForCity)
+	log.Printf("Set chat %d state to waiting for city", chatID)
+
+	return nil
+}
+
 func (b *Bot) handleFavouriteArtists(chatID int64) error {
-	if !b.Authorized(chatID) {
+	if !b.isAuthorized(chatID) {
 		return b.handleAuth(chatID)
 	}
 
