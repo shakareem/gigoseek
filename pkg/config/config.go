@@ -24,6 +24,7 @@ type Config struct {
 	TelegramApiToken    string    `json:"telegram_api_token"`
 	SpotifyClientID     string    `json:"spotify_client_id"`
 	SpotifyClientSecret string    `json:"spotify_client_secret"`
+	TimepadApiToken     string    `json:"timepad_api_token"`
 	AuthServerURL       string    `json:"auth_server_url"`
 	Responses           Responses `json:"responses"`
 }
