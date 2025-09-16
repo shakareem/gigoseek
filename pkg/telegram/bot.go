@@ -67,7 +67,7 @@ func (b *Bot) handleCityMessage(chatID int64, city string) error {
 
 	b.storage.SaveChatState(chatID, StateIdle)
 
-	msg := tgbotapi.NewMessage(chatID, "Город успешно установлен!")
+	msg := tgbotapi.NewMessage(chatID, messages.CitySuccess)
 	_, err := b.botAPI.Send(msg)
 
 	return err

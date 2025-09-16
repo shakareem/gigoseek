@@ -9,24 +9,24 @@ import (
 
 const configFilePath = "configs/private.json"
 
-type Responses struct {
+type Messages struct {
 	Start           string `json:"start"`
-	EnterCity       string `json:"enter_city"`
 	AuthPrompt      string `json:"auth_prompt"`
 	AuthSuccess     string `json:"auth_success"`
 	AuthFail        string `json:"auth_fail"`
 	Help            string `json:"help"`
-	UnknownCommand  string `json:"unknown_command"`
 	FavoriteArtists string `json:"favorite_artists"`
+	EnterCity       string `json:"enter_city"`
+	CitySuccess     string `json:"city_success"`
 }
 
 type Config struct {
-	TelegramApiToken    string    `json:"telegram_api_token"`
-	SpotifyClientID     string    `json:"spotify_client_id"`
-	SpotifyClientSecret string    `json:"spotify_client_secret"`
-	TimepadApiToken     string    `json:"timepad_api_token"`
-	AuthServerURL       string    `json:"auth_server_url"`
-	Responses           Responses `json:"responses"`
+	TelegramApiToken    string   `json:"telegram_api_token"`
+	SpotifyClientID     string   `json:"spotify_client_id"`
+	SpotifyClientSecret string   `json:"spotify_client_secret"`
+	TimepadApiToken     string   `json:"timepad_api_token"`
+	AuthServerURL       string   `json:"auth_server_url"`
+	Messages            Messages `json:"messages"`
 }
 
 var cfg *Config

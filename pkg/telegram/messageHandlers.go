@@ -20,13 +20,11 @@ const (
 	changeCityCommand = "changecity"
 )
 
-var responses = config.Get().Responses
+var messages = config.Get().Messages
 
 func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
-	response := tgbotapi.NewMessage(msg.Chat.ID, "")
-
 	if !msg.IsCommand() {
-		response.Text = "пока поддерживаются только команды"
+		return b.handleHelpCommand(msg.Chat.ID)
 	}
 
 	switch msg.Command() {
@@ -35,22 +33,25 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	case authCommand:
 		return b.handleAuth(msg.Chat.ID)
 	case helpCommand:
-		response.Text = responses.Help
+		return b.handleHelpCommand(msg.Chat.ID)
 	case favouritesCommand:
 		return b.handleFavouriteArtists(msg.Chat.ID)
 	case changeCityCommand:
 		return b.handleSetCity(msg.Chat.ID)
 	default:
-		response.Text = responses.UnknownCommand
+		return b.handleHelpCommand(msg.Chat.ID)
 	}
+}
 
-	_, err := b.botAPI.Send(response)
+func (b *Bot) handleHelpCommand(chatID int64) error {
+	msg := tgbotapi.NewMessage(chatID, messages.Help)
+	_, err := b.botAPI.Send(msg)
 	return err
 }
 
 func (b *Bot) handleStart(chatID int64) error {
-	response := tgbotapi.NewMessage(chatID, responses.Start)
-	_, err := b.botAPI.Send(response)
+	msg := tgbotapi.NewMessage(chatID, messages.Start)
+	_, err := b.botAPI.Send(msg)
 	if err != nil {
 		return err
 	}
@@ -115,14 +116,14 @@ func (b *Bot) handleAuth(chatID int64) error {
 	b.storage.SaveState(state, chatID)
 
 	url := auth.AuthURL(state)
-	response := tgbotapi.NewMessage(chatID, responses.AuthPrompt+url)
+	msg := tgbotapi.NewMessage(chatID, messages.AuthPrompt+url)
 
-	_, err := b.botAPI.Send(response)
+	_, err := b.botAPI.Send(msg)
 	return err
 }
 
 func (b *Bot) handleSetCity(chatID int64) error {
-	msg := tgbotapi.NewMessage(chatID, responses.EnterCity)
+	msg := tgbotapi.NewMessage(chatID, messages.EnterCity)
 	_, err := b.botAPI.Send(msg)
 	if err != nil {
 		return err
@@ -163,17 +164,17 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 	log.Printf("Retrieved %d artists", len(artistsPage.Artists))
 
 	if len(artistsPage.Artists) == 0 {
-		response := tgbotapi.NewMessage(chatID, "No favourite artists found")
-		_, err = b.botAPI.Send(response)
+		msg := tgbotapi.NewMessage(chatID, "No favourite artists found")
+		_, err = b.botAPI.Send(msg)
 		return err
 	}
 
-	text := responses.FavoriteArtists
+	text := messages.FavoriteArtists
 	for i, artist := range artistsPage.Artists {
 		text += fmt.Sprintf("%d. %s\n", i+1, artist.SimpleArtist.Name)
 	}
 
-	response := tgbotapi.NewMessage(chatID, text)
-	_, err = b.botAPI.Send(response)
+	msg := tgbotapi.NewMessage(chatID, text)
+	_, err = b.botAPI.Send(msg)
 	return err
 }

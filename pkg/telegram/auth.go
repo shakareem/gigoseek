@@ -98,7 +98,7 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 	s.storage.SaveToken(chatID, *token)
 	s.storage.DeleteState(receivedState)
 
-	msg := tgbotapi.NewMessage(chatID, config.Get().Responses.AuthSuccess)
+	msg := tgbotapi.NewMessage(chatID, config.Get().Messages.AuthSuccess)
 	if _, err := s.botAPI.Send(msg); err != nil {
 		log.Printf("Failed to send auth success message: %v", err)
 	}
