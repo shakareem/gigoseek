@@ -26,7 +26,7 @@ var messages = config.Get().Messages
 
 func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	if !msg.IsCommand() {
-		return b.handleHelp(msg.Chat.ID)
+		return b.sendMessage(msg.Chat.ID, messages.Help)
 	}
 
 	// TODO: дополнительные состояния, чтобы команды не работали до аутентификации и установки города
@@ -36,7 +36,7 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	case authCommand:
 		return b.handleAuth(msg.Chat.ID)
 	case helpCommand:
-		return b.handleHelp(msg.Chat.ID)
+		return b.sendMessage(msg.Chat.ID, messages.Help)
 	case favouritesCommand:
 		return b.handleFavouriteArtists(msg.Chat.ID)
 	case changeCityCommand:
@@ -44,19 +44,12 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	case concertsCommand:
 		return b.handleConcerts(msg.Chat.ID)
 	default:
-		return b.handleHelp(msg.Chat.ID)
+		return b.sendMessage(msg.Chat.ID, messages.Help)
 	}
 }
 
-func (b *Bot) handleHelp(chatID int64) error {
-	msg := tgbotapi.NewMessage(chatID, messages.Help)
-	_, err := b.botAPI.Send(msg)
-	return err
-}
-
 func (b *Bot) handleStart(chatID int64) error {
-	msg := tgbotapi.NewMessage(chatID, messages.Start)
-	_, err := b.botAPI.Send(msg)
+	err := b.sendMessage(chatID, messages.Start)
 	if err != nil {
 		return err
 	}
@@ -121,15 +114,11 @@ func (b *Bot) handleAuth(chatID int64) error {
 	b.storage.SaveState(state, chatID)
 
 	url := auth.AuthURL(state)
-	msg := tgbotapi.NewMessage(chatID, messages.AuthPrompt+url)
-
-	_, err := b.botAPI.Send(msg)
-	return err
+	return b.sendMessage(chatID, messages.AuthPrompt+url)
 }
 
 func (b *Bot) handleSetCity(chatID int64) error {
-	msg := tgbotapi.NewMessage(chatID, messages.EnterCity)
-	_, err := b.botAPI.Send(msg)
+	err := b.sendMessage(chatID, messages.EnterCity)
 	if err != nil {
 		return err
 	}
@@ -151,9 +140,7 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 	}
 
 	if len(names) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "No favourite artists found")
-		_, err = b.botAPI.Send(msg)
-		return err
+		return b.sendMessage(chatID, messages.NoFavorites)
 	}
 
 	text := messages.FavoriteArtists
@@ -161,9 +148,7 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 		text += fmt.Sprintf("%d. %s\n", i+1, name)
 	}
 
-	msg := tgbotapi.NewMessage(chatID, text)
-	_, err = b.botAPI.Send(msg)
-	return err
+	return b.sendMessage(chatID, text)
 }
 
 func (b *Bot) handleConcerts(chatID int64) error {
@@ -179,30 +164,25 @@ func (b *Bot) handleConcerts(chatID int64) error {
 	}
 
 	if len(artists) == 0 {
-		msg := tgbotapi.NewMessage(chatID, messages.NoFavorites)
-		_, err := b.botAPI.Send(msg)
-		return err
+		return b.sendMessage(chatID, messages.NoFavorites)
 	}
 
 	events := concerts.GetTimepadConcerts(artists, city)
 
 	if len(events) == 0 {
-		msg := tgbotapi.NewMessage(chatID, messages.NoConcerts)
-		_, err := b.botAPI.Send(msg)
-		return err
+		return b.sendMessage(chatID, messages.NoConcerts)
 	}
 
 	text := fmt.Sprintf("Найдено %d событий:\n\n", len(events))
-	for _, e := range events {
+	for _, event := range events {
 		text += fmt.Sprintf("Название: %s\nВремя начала:%s\nСсылка: %s\n\n",
-			e.Name,
-			e.StartsAt,
-			e.URL)
+			event.Name,
+			event.StartsAt,
+			event.URL)
 	}
 
-	msg := tgbotapi.NewMessage(chatID, text)
-	_, err = b.botAPI.Send(msg)
-	return err
+	return b.sendMessage(chatID, text)
+
 }
 
 func (b *Bot) getFavoriteArtistsNames(chatID int64) ([]string, error) {

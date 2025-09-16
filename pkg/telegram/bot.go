@@ -21,6 +21,12 @@ const (
 	StateWaitingForCity
 )
 
+func (b *Bot) sendMessage(chatID int64, text string) error {
+	msg := tgbotapi.NewMessage(chatID, text)
+	_, err := b.botAPI.Send(msg)
+	return err
+}
+
 func (b *Bot) Start() error {
 	b.botAPI.Debug = true
 
@@ -67,8 +73,5 @@ func (b *Bot) handleCityMessage(chatID int64, city string) error {
 
 	b.storage.SaveChatState(chatID, StateIdle)
 
-	msg := tgbotapi.NewMessage(chatID, messages.CitySuccess)
-	_, err := b.botAPI.Send(msg)
-
-	return err
+	return b.sendMessage(chatID, messages.CitySuccess)
 }
