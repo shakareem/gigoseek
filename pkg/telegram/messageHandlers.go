@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shakareem/gigoseek/pkg/concerts"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/oauth2"
@@ -18,32 +19,36 @@ const (
 	helpCommand       = "help"
 	favouritesCommand = "favorites"
 	changeCityCommand = "changecity"
+	concertsCommand   = "concerts"
 )
 
 var messages = config.Get().Messages
 
 func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 	if !msg.IsCommand() {
-		return b.handleHelpCommand(msg.Chat.ID)
+		return b.handleHelp(msg.Chat.ID)
 	}
 
+	// TODO: дополнительные состояния, чтобы команды не работали до аутентификации и установки города
 	switch msg.Command() {
 	case startCommand:
 		return b.handleStart(msg.Chat.ID)
 	case authCommand:
 		return b.handleAuth(msg.Chat.ID)
 	case helpCommand:
-		return b.handleHelpCommand(msg.Chat.ID)
+		return b.handleHelp(msg.Chat.ID)
 	case favouritesCommand:
 		return b.handleFavouriteArtists(msg.Chat.ID)
 	case changeCityCommand:
 		return b.handleSetCity(msg.Chat.ID)
+	case concertsCommand:
+		return b.handleConcerts(msg.Chat.ID)
 	default:
-		return b.handleHelpCommand(msg.Chat.ID)
+		return b.handleHelp(msg.Chat.ID)
 	}
 }
 
-func (b *Bot) handleHelpCommand(chatID int64) error {
+func (b *Bot) handleHelp(chatID int64) error {
 	msg := tgbotapi.NewMessage(chatID, messages.Help)
 	_, err := b.botAPI.Send(msg)
 	return err
@@ -140,11 +145,72 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 		return b.handleAuth(chatID)
 	}
 
-	log.Printf("Getting favorites for chat ID: %d", chatID)
+	names, err := b.getFavoriteArtistsNames(chatID)
+	if err != nil {
+		return fmt.Errorf("failed to get favorite artists for chat %d: %w", chatID, err)
+	}
+
+	if len(names) == 0 {
+		msg := tgbotapi.NewMessage(chatID, "No favourite artists found")
+		_, err = b.botAPI.Send(msg)
+		return err
+	}
+
+	text := messages.FavoriteArtists
+	for i, name := range names {
+		text += fmt.Sprintf("%d. %s\n", i+1, name)
+	}
+
+	msg := tgbotapi.NewMessage(chatID, text)
+	_, err = b.botAPI.Send(msg)
+	return err
+}
+
+func (b *Bot) handleConcerts(chatID int64) error {
+	// тут пока предпологаем, что пользователь аутентифицирован и город установлен
+	city, err := b.storage.GetCity(chatID)
+	if err != nil {
+		return fmt.Errorf("failed to get city for chat %d: %w", chatID, err)
+	}
+
+	artists, err := b.getFavoriteArtistsNames(chatID)
+	if err != nil {
+		return fmt.Errorf("failed to get favorite artists for chat %d: %w", chatID, err)
+	}
+
+	if len(artists) == 0 {
+		msg := tgbotapi.NewMessage(chatID, messages.NoFavorites)
+		_, err := b.botAPI.Send(msg)
+		return err
+	}
+
+	events := concerts.GetTimepadConcerts(artists, city)
+
+	if len(events) == 0 {
+		msg := tgbotapi.NewMessage(chatID, messages.NoConcerts)
+		_, err := b.botAPI.Send(msg)
+		return err
+	}
+
+	text := fmt.Sprintf("Найдено %d событий:\n\n", len(events))
+	for _, e := range events {
+		text += fmt.Sprintf("Название: %s\nВремя начала:%s\nСсылка: %s\n\n",
+			e.Name,
+			e.StartsAt,
+			e.URL)
+	}
+
+	msg := tgbotapi.NewMessage(chatID, text)
+	_, err = b.botAPI.Send(msg)
+	return err
+}
+
+func (b *Bot) getFavoriteArtistsNames(chatID int64) ([]string, error) {
+	log.Printf("Getting top artists for chat ID: %d", chatID)
 
 	token, err := b.storage.GetToken(chatID)
 	if err != nil {
-		return fmt.Errorf("failed to get token: %w", err)
+		return []string{}, fmt.Errorf("failed to get token: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -152,29 +218,18 @@ func (b *Bot) handleFavouriteArtists(chatID int64) error {
 
 	client := spotify.New(auth.Client(ctx, &token))
 
-	artistsPage, err := client.CurrentUsersTopArtists(
-		ctx,
-		spotify.Limit(5),
-		spotify.Locale("ru_RU"),
-	)
+	artistsPage, err := client.CurrentUsersTopArtists(ctx, spotify.Limit(50))
 	if err != nil {
-		return fmt.Errorf("failed to get top artists: %w", err)
+		return []string{}, fmt.Errorf("failed to get top artists: %w", err)
 	}
 
 	log.Printf("Retrieved %d artists", len(artistsPage.Artists))
 
-	if len(artistsPage.Artists) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "No favourite artists found")
-		_, err = b.botAPI.Send(msg)
-		return err
-	}
-
-	text := messages.FavoriteArtists
+	artistsNames := make([]string, len(artistsPage.Artists))
 	for i, artist := range artistsPage.Artists {
-		text += fmt.Sprintf("%d. %s\n", i+1, artist.SimpleArtist.Name)
+		// TODO: мб фильтровать только артистов из России (как?)
+		artistsNames[i] = artist.Name
 	}
 
-	msg := tgbotapi.NewMessage(chatID, text)
-	_, err = b.botAPI.Send(msg)
-	return err
+	return artistsNames, nil
 }

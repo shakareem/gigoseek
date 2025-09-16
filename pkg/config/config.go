@@ -18,6 +18,8 @@ type Messages struct {
 	FavoriteArtists string `json:"favorite_artists"`
 	EnterCity       string `json:"enter_city"`
 	CitySuccess     string `json:"city_success"`
+	NoFavorites     string `json:"no_favorites"`
+	NoConcerts      string `json:"no_concerts"`
 }
 
 type Config struct {

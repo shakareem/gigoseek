@@ -28,6 +28,7 @@ type EventsResponse struct {
 }
 
 const concertsCategoryID = "460"
+const timepadAPIBaseURL = "https://api.timepad.ru/v1/events.json"
 
 func GetTimepadConcerts(artists []string, city string) []Event {
 	concerts := []Event{}
@@ -44,14 +45,12 @@ func GetTimepadConcerts(artists []string, city string) []Event {
 }
 
 func getArtistConcert(artist, city string) ([]Event, error) {
-	baseURL := "https://api.timepad.ru/v1/events.json"
-
 	params := url.Values{}
 	params.Add("category_ids", concertsCategoryID)
 	params.Add("cities", city)
 	params.Add("keywords", artist)
 
-	fullURL := baseURL + "?" + params.Encode()
+	fullURL := timepadAPIBaseURL + "?" + params.Encode()
 
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
@@ -77,28 +76,4 @@ func getArtistConcert(artist, city string) ([]Event, error) {
 	}
 
 	return result.Values, nil
-}
-
-func TimepadTest() {
-	artists := []string{" цк ", "фестиваль"}
-	city := "Санкт-Петербург"
-
-	events := GetTimepadConcerts(artists, city)
-
-	if len(events) == 0 {
-		fmt.Println("Ничего не найдено.")
-		return
-	}
-
-	fmt.Printf("Нашли %d событий:\n", len(events))
-	for _, e := range events {
-		fmt.Printf("Название: %s\nОписание: %s\nВремя начала:%s\nАдрес: %s, %s\nСсылка: %s\n\n",
-			e.Name,
-			e.Description,
-			e.StartsAt,
-			e.Location.City,
-			e.Location.Address,
-			e.URL,
-		)
-	}
 }
