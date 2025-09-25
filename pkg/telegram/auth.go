@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/shakareem/gigoseek/pkg/storage"
 	"github.com/zmb3/spotify/v2"
@@ -41,9 +40,9 @@ func generateState() string {
 }
 
 type AuthServer struct {
-	server  *http.Server
-	storage storage.Storage
-	botAPI  *tgbotapi.BotAPI // поле бота для сообщениях об авторизации
+	server      *http.Server
+	storage     storage.Storage
+	authUpdates chan<- int64
 }
 
 type userInfo struct {
@@ -51,10 +50,10 @@ type userInfo struct {
 	token  *oauth2.Token
 }
 
-func NewAuthServer(storage storage.Storage, botAPI *tgbotapi.BotAPI) *AuthServer {
+func NewAuthServer(storage storage.Storage, authUpdates chan<- int64) *AuthServer {
 	return &AuthServer{
-		storage: storage,
-		botAPI:  botAPI,
+		storage:     storage,
+		authUpdates: authUpdates,
 	}
 }
 
@@ -66,7 +65,7 @@ func (s *AuthServer) Run() error {
 
 	go func() {
 		for userInfo := range userInfoChan {
-			client := spotify.New(auth.Client(context.Background(), userInfo.token)) // подумать про контексты
+			client := spotify.New(auth.Client(context.Background(), userInfo.token))
 
 			user, err := client.CurrentUser(context.Background())
 			if err != nil {
@@ -84,6 +83,7 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 
 	chatID, err := s.storage.GetChatIDbyState(receivedState)
 	if err != nil {
+		log.Println("HTTP request to auth server with invalid state")
 		http.Error(w, "Invalid state", http.StatusBadRequest)
 		return
 	}
@@ -91,18 +91,14 @@ func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.Token(r.Context(), receivedState, r)
 	if err != nil {
 		http.Error(w, "Couldn't get token", http.StatusForbidden)
-		log.Fatal(err)
+		log.Println("Failed to get token from state during auth")
 	}
 
 	s.storage.SaveToken(chatID, *token)
 	s.storage.DeleteState(receivedState)
-
-	msg := tgbotapi.NewMessage(chatID, config.Get().Responses.AuthSuccess)
-	if _, err := s.botAPI.Send(msg); err != nil {
-		log.Printf("Failed to send auth success message: %v", err)
-	}
-
 	userInfoChan <- userInfo{chatID: chatID, token: token}
+
+	s.authUpdates <- chatID
 
 	http.Redirect(w, r, "https://web.telegram.org/k/#@gigoseek_bot", http.StatusSeeOther)
 }

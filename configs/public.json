@@ -2,14 +2,18 @@
   "telegram_api_token": "",
   "spotify_client_id": "",
   "spotify_client_secret": "",
+  "timepad_api_token": "",
   "auth_server_url": "http://127.0.0.1:8080/callback",
-  "responses": {
+  "messages": {
     "start": "Привет!",
-    "favorite_artists": "Ваши любимые артисты:\n",
     "auth_prompt": "Для использования приложения необходимо авторизоваться через Spotify:\n",
-    "auth_success": "✅ Авторизация успешно завершена! Теперь вы можете использовать команду /favorites",
+    "auth_success": "✅ Авторизация успешно завершена! Теперь вы можете использовать команды /favorites и /concerts",
     "auth_fail": "Не удалось авторизоваться",
-    "help": "Доступные команды:\n/start - начать работу с ботом\n/help - показать это сообщение\n/auth - авторизоваться через Spotify",
-    "unknown_command": "Неизвестная команда. Введите /help для списка доступных команд."
+    "help": "Доступные команды:\n/start - начать работу с ботом\n/help - показать это сообщение\n/favorites - показать любимых артистов\n/concerts - показать ближайшие концерты\n/auth - авторизоваться через Spotify\n/change_city - изменить город",
+    "favorite_artists": "Ваши любимые артисты:\n",
+    "enter_city": "Введите название вашего города:",
+    "city_success": "Город успешно установлен!",
+    "no_favorites": "У вас нет любимых артистов. Пожалуйста, добавьте их в Spotify.",
+    "no_concerts": "Событий не найдено."
   }
 }

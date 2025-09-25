@@ -9,23 +9,26 @@ import (
 
 const configFilePath = "configs/private.json"
 
-type Responses struct {
-	Start             string `json:"start"`
-	AlreadyAuthorized string `json:"already_authorized"`
-	AuthPrompt        string `json:"auth_prompt"`
-	AuthSuccess       string `json:"auth_success"`
-	AuthFail          string `json:"auth_fail"`
-	Help              string `json:"help"`
-	UnknownCommand    string `json:"unknown_command"`
-	FavoriteArtists   string `json:"favorite_artists"`
+type Messages struct {
+	Start           string `json:"start"`
+	AuthPrompt      string `json:"auth_prompt"`
+	AuthSuccess     string `json:"auth_success"`
+	AuthFail        string `json:"auth_fail"`
+	Help            string `json:"help"`
+	FavoriteArtists string `json:"favorite_artists"`
+	EnterCity       string `json:"enter_city"`
+	CitySuccess     string `json:"city_success"`
+	NoFavorites     string `json:"no_favorites"`
+	NoConcerts      string `json:"no_concerts"`
 }
 
 type Config struct {
-	TelegramApiToken    string    `json:"telegram_api_token"`
-	SpotifyClientID     string    `json:"spotify_client_id"`
-	SpotifyClientSecret string    `json:"spotify_client_secret"`
-	AuthServerURL       string    `json:"auth_server_url"`
-	Responses           Responses `json:"responses"`
+	TelegramApiToken    string   `json:"telegram_api_token"`
+	SpotifyClientID     string   `json:"spotify_client_id"`
+	SpotifyClientSecret string   `json:"spotify_client_secret"`
+	TimepadApiToken     string   `json:"timepad_api_token"`
+	AuthServerURL       string   `json:"auth_server_url"`
+	Messages            Messages `json:"messages"`
 }
 
 var cfg *Config
