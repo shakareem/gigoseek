@@ -22,6 +22,8 @@ const (
 	concertsCommand   = "concerts"
 )
 
+// TODO: мб интерфейсы ArtistsProvider и ConcertProvider
+
 var messages = config.Get().Messages
 
 func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
@@ -29,7 +31,6 @@ func (b *Bot) handleMessage(msg *tgbotapi.Message) error {
 		return b.sendMessage(msg.Chat.ID, messages.Help)
 	}
 
-	// TODO: дополнительные состояния, чтобы команды не работали до аутентификации и установки города
 	switch msg.Command() {
 	case startCommand:
 		return b.handleStart(msg.Chat.ID)
@@ -55,11 +56,8 @@ func (b *Bot) handleStart(chatID int64) error {
 	}
 
 	if !b.isAuthorized(chatID) {
-		err = b.handleAuth(chatID)
-		if err != nil {
-			return err
-		}
-		// TODO: мб ждать пока авторизуется
+		b.storage.SaveChatState(chatID, StateWaitingForAuth)
+		return b.handleAuth(chatID)
 	}
 
 	if !b.isCitySet(chatID) {
@@ -109,7 +107,7 @@ func (b *Bot) refreshExpiredToken(chatID int64, token *oauth2.Token) error {
 }
 
 func (b *Bot) handleAuth(chatID int64) error {
-	state := generateState()
+	state := generateState() // мб генерировать не тут, а при появлении нового пользователя
 
 	b.storage.SaveState(state, chatID)
 

@@ -22,17 +22,16 @@ func main() {
 		log.Fatal("cannot create bot", err)
 	}
 
-	authServer := telegram.NewAuthServer(storage, botAPI)
+	authUpdates := make(chan int64, 100)
+
+	authServer := telegram.NewAuthServer(storage, authUpdates)
 	go func() {
 		if err := authServer.Run(); err != nil {
 			log.Fatal("cannot start auth server", err)
 		}
 	}()
 
-	bot := telegram.NewBot(botAPI, storage)
+	bot := telegram.NewBot(botAPI, storage, authUpdates)
 
-	err = bot.Start()
-	if err != nil {
-		log.Fatal("cannot start bot", err)
-	}
+	bot.Start()
 }

@@ -4,21 +4,28 @@ import (
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/shakareem/gigoseek/pkg/storage"
 )
 
 type Bot struct {
-	botAPI  *tgbotapi.BotAPI
-	storage storage.Storage
+	botAPI      *tgbotapi.BotAPI
+	storage     storage.Storage
+	authUpdates <-chan int64
 }
 
-func NewBot(botAPI *tgbotapi.BotAPI, storage storage.Storage) *Bot {
-	return &Bot{botAPI: botAPI, storage: storage}
+func NewBot(botAPI *tgbotapi.BotAPI, storage storage.Storage, authUpdates <-chan int64) *Bot {
+	return &Bot{
+		botAPI:      botAPI,
+		storage:     storage,
+		authUpdates: authUpdates,
+	}
 }
 
 const (
 	StateIdle storage.ChatState = iota
 	StateWaitingForCity
+	StateWaitingForAuth
 )
 
 func (b *Bot) sendMessage(chatID int64, text string) error {
@@ -27,7 +34,7 @@ func (b *Bot) sendMessage(chatID int64, text string) error {
 	return err
 }
 
-func (b *Bot) Start() error {
+func (b *Bot) Start() {
 	b.botAPI.Debug = true
 
 	log.Printf("Authorized on account %s", b.botAPI.Self.UserName)
@@ -35,31 +42,59 @@ func (b *Bot) Start() error {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates := b.botAPI.GetUpdatesChan(u)
+	chatUpdates := b.botAPI.GetUpdatesChan(u)
 
-	for update := range updates {
-		if update.Message == nil {
-			continue
+	for {
+		select {
+		case update := <-chatUpdates:
+			go func() {
+				err := b.handleUpdate(update)
+				if err != nil {
+					log.Printf("Error handling message: %v", err)
+				}
+			}()
+		case chatID := <-b.authUpdates:
+			go func() {
+				err := b.handleAuthSuccess(chatID)
+				if err != nil {
+					log.Printf("Error handling auth success: %v", err)
+				}
+			}()
 		}
+	}
+}
 
-		chatState, err := b.storage.GetChatState(update.Message.Chat.ID)
-		if err != nil {
-			chatState = StateIdle
-			b.storage.SaveChatState(update.Message.Chat.ID, StateIdle)
-		}
+func (b *Bot) handleUpdate(update tgbotapi.Update) error {
+	if update.Message == nil {
+		return nil
+	}
 
-		if chatState == StateWaitingForCity {
-			err = b.handleCityMessage(update.Message.Chat.ID, update.Message.Text)
-			if err != nil {
-				log.Printf("Error handling city message: %v", err)
-			}
-			continue
-		}
+	chatState, err := b.storage.GetChatState(update.Message.Chat.ID)
+	if err != nil {
+		chatState = StateIdle
+		b.storage.SaveChatState(update.Message.Chat.ID, StateIdle)
+	}
 
-		err = b.handleMessage(update.Message)
-		if err != nil {
-			log.Printf("Error handling message: %v", err)
-		}
+	switch chatState {
+	case StateWaitingForAuth:
+		return b.handleAuth(update.Message.Chat.ID)
+	case StateWaitingForCity:
+		return b.handleCityMessage(update.Message.Chat.ID, update.Message.Text)
+	}
+
+	return b.handleMessage(update.Message)
+}
+
+func (b *Bot) handleAuthSuccess(chatID int64) error {
+	log.Printf("Chat %d authed successfully", chatID)
+	b.storage.SaveChatState(chatID, StateIdle)
+	err := b.sendMessage(chatID, config.Get().Messages.AuthSuccess)
+	if err != nil {
+		return err
+	}
+
+	if !b.isCitySet(chatID) {
+		return b.handleSetCity(chatID)
 	}
 
 	return nil
