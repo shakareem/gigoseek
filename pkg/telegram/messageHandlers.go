@@ -108,8 +108,9 @@ func (b *Bot) refreshExpiredToken(chatID int64, token *oauth2.Token) error {
 
 func (b *Bot) handleAuth(chatID int64) error {
 	state := generateState() // мб генерировать не тут, а при появлении нового пользователя
+	b.storage.SaveAuthState(state, chatID)
 
-	b.storage.SaveState(state, chatID)
+	log.Printf("Generated state %v for chat %v", state, chatID)
 
 	url := auth.AuthURL(state)
 	return b.sendMessage(chatID, messages.AuthPrompt+url)
@@ -163,6 +164,11 @@ func (b *Bot) handleConcerts(chatID int64) error {
 
 	if len(artists) == 0 {
 		return b.sendMessage(chatID, messages.NoFavorites)
+	}
+
+	err = b.sendMessage(chatID, messages.WaitForConcerts)
+	if err != nil {
+		return err
 	}
 
 	events := concerts.GetTimepadConcerts(artists, city)

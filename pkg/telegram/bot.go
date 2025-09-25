@@ -6,15 +6,34 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/shakareem/gigoseek/pkg/storage"
+	"golang.org/x/oauth2"
 )
+
+type Storage interface {
+	SaveAuthState(state string, chatID int64) error
+	GetChatIDbyAuthState(state string) (int64, error)
+	DeleteAuthState(state string) error
+
+	SaveToken(chatID int64, token oauth2.Token) error
+	GetToken(chatID int64) (oauth2.Token, error)
+	DeleteToken(chatID int64) error
+
+	SaveCity(chatID int64, city string) error
+	GetCity(chatID int64) (string, error)
+	DeleteCity(chatID int64) error
+
+	SaveChatState(chatID int64, state storage.ChatState) error
+	GetChatState(chatID int64) (storage.ChatState, error)
+	DeleteChatState(chatID int64) error
+}
 
 type Bot struct {
 	botAPI      *tgbotapi.BotAPI
-	storage     storage.Storage
+	storage     Storage
 	authUpdates <-chan int64
 }
 
-func NewBot(botAPI *tgbotapi.BotAPI, storage storage.Storage, authUpdates <-chan int64) *Bot {
+func NewBot(botAPI *tgbotapi.BotAPI, storage Storage, authUpdates <-chan int64) *Bot {
 	return &Bot{
 		botAPI:      botAPI,
 		storage:     storage,

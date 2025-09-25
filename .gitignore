@@ -63,3 +63,6 @@ go.work
 
 # private config
 configs/private.json
+
+# tmp
+tmp/*

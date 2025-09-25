@@ -4,6 +4,7 @@ go 1.24.6
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/lib/pq v1.10.9
 	github.com/zmb3/spotify/v2 v2.4.3
 	golang.org/x/oauth2 v0.0.0-20210810183815-faf39c7919d5
 )

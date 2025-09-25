@@ -20,6 +20,7 @@ type Messages struct {
 	CitySuccess     string `json:"city_success"`
 	NoFavorites     string `json:"no_favorites"`
 	NoConcerts      string `json:"no_concerts"`
+	WaitForConcerts string `json:"wait_for_concerts"`
 }
 
 type Config struct {
