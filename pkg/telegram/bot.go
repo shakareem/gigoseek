@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -122,7 +123,10 @@ func (b *Bot) handleAuthSuccess(chatID int64) error {
 func (b *Bot) handleCityMessage(chatID int64, city string) error {
 	// TODO: проверять валидность города (мб через timepad)
 
-	b.storage.SaveCity(chatID, city)
+	err := b.storage.SaveCity(chatID, city)
+	if err != nil {
+		return b.sendMessage(chatID, fmt.Sprintf("%v", err))
+	}
 	log.Printf("City for chat %d set successfully", chatID)
 
 	b.storage.SaveChatState(chatID, StateIdle)

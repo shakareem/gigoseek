@@ -1,0 +1,23 @@
+services:
+  app:
+    build: .
+    command: "./.bin/bot"
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    volumes:
+      - ./.tls:/tls:Z
+    env_file:
+      - .env
+
+  db:
+    restart: always
+    image: postgres:latest
+    env_file:
+      - .env
+    ports:
+      - 5433:5432
+    volumes:
+    - ./.postgres:/var/lib/postgresql:Z
+    - ./db/init:/docker-entrypoint-initdb.d:Z

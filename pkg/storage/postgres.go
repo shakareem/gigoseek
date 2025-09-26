@@ -6,6 +6,7 @@ import (
 	"log"
 
 	_ "github.com/lib/pq"
+	"github.com/shakareem/gigoseek/pkg/config"
 	"golang.org/x/oauth2"
 )
 
@@ -15,22 +16,19 @@ type PostgresStorage struct {
 	db *sql.DB
 }
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "postgres"
-	dbname   = "gigoseek"
-)
-
 func NewPostgresStorage() (*PostgresStorage, error) {
-	psqlInfo := fmt.Sprintf("host=%s port= %d user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	cfg := config.Get().Database
+
+	psqlInfo := fmt.Sprintf(
+		"host=%s port= %d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBname,
+	)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		return nil, err
 	}
+
 	return &PostgresStorage{db: db}, nil
 }
 
@@ -97,11 +95,12 @@ func (s *PostgresStorage) DeleteToken(chatID int64) error {
 func (s *PostgresStorage) SaveCity(chatID int64, city string) error {
 	var cityID int
 	err := s.db.QueryRow(`
-		INSERT INTO city (city_name) VALUES ($1)
-		ON CONFLICT (city_name) DO UPDATE SET city_name = EXCLUDED.city_name
-		RETURNING id
+		SELECT id FROM city WHERE city_name = $1
 	`, city).Scan(&cityID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("Город %q не найден в базе", city)
+		}
 		return err
 	}
 

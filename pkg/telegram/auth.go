@@ -58,7 +58,7 @@ func NewAuthServer(storage Storage, authUpdates chan<- int64) *AuthServer {
 
 func (s *AuthServer) Run() error {
 	handler := http.NewServeMux()
-	handler.HandleFunc("/", s.completeAuth)
+	handler.HandleFunc("/callback", s.completeAuth)
 
 	s.server = &http.Server{Addr: ":8080", Handler: handler}
 
@@ -70,12 +70,16 @@ func (s *AuthServer) Run() error {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println("New user logged in:", user.DisplayName, "\nchatID:", userInfo.chatID, "\ntoken:", userInfo.token.AccessToken)
+			fmt.Println(
+				"New user logged in:", user.DisplayName,
+				"\nchatID:", userInfo.chatID,
+				"\ntoken:", userInfo.token.AccessToken,
+			)
 		}
 	}()
 
 	log.Println("Starting auth server")
-	return s.server.ListenAndServeTLS("tmp/server.crt", "tmp/server.key") // TODO: move to config
+	return s.server.ListenAndServeTLS(config.Get().TLS.TLScrtPath, config.Get().TLS.TLSkeyPath)
 }
 
 func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {

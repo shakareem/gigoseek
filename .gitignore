@@ -62,7 +62,13 @@ go.work
 # End of https://www.toptal.com/developers/gitignore/api/go,linux,visualstudiocode
 
 # private config
-configs/private.json
+.env
 
-# tmp
-tmp/*
+# tmp files
+tmp/
+
+# postgreSQL data directory for running db in docker
+.postgres/
+
+# TLS certificate and key fro HTTPS
+.tls/
