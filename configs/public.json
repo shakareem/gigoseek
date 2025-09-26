@@ -3,7 +3,7 @@
   "spotify_client_id": "",
   "spotify_client_secret": "",
   "timepad_api_token": "",
-  "auth_server_url": "http://127.0.0.1:8080/callback",
+  "auth_server_url": "https://127.0.0.1:8080",
   "messages": {
     "start": "Привет!",
     "auth_prompt": "Для использования приложения необходимо авторизоваться через Spotify:\n",

@@ -56,7 +56,7 @@ func (b *Bot) sendMessage(chatID int64, text string) error {
 func (b *Bot) Start() {
 	b.botAPI.Debug = true
 
-	log.Printf("Authorized on account %s", b.botAPI.Self.UserName)
+	log.Printf("Authorized bot on account %s", b.botAPI.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
