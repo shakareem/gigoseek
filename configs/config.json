@@ -1,9 +1,5 @@
 {
-  "telegram_api_token": "",
-  "spotify_client_id": "",
-  "spotify_client_secret": "",
-  "timepad_api_token": "",
-  "auth_server_url": "http://127.0.0.1:8080/callback",
+  "auth_server_url": "https://127.0.0.1:8080/callback",
   "messages": {
     "start": "Привет!",
     "auth_prompt": "Для использования приложения необходимо авторизоваться через Spotify:\n",
@@ -14,6 +10,21 @@
     "enter_city": "Введите название вашего города:",
     "city_success": "Город успешно установлен!",
     "no_favorites": "У вас нет любимых артистов. Пожалуйста, добавьте их в Spotify.",
+    "wait_for_concerts": "Подождите, ищем концерты для вас...",
     "no_concerts": "Событий не найдено."
+  },
+  "database": {
+    "host":"db",
+    "port":5432,
+    "user":"postgres",
+    "db_name":"postgres"
+  },
+  "tls": {
+    "tls_crt_path": "/tls/server.crt",
+    "tls_key_path": "/tls/server.key"
+  },
+  "timepad": {
+    "api_url": "https://api.timepad.ru/v1/events.json",
+    "concerts_category_id": "460"
   }
 }

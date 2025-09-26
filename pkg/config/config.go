@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const configFilePath = "configs/private.json"
+const configFilePath = "configs/config.json"
 
 type Messages struct {
 	Start           string `json:"start"`
@@ -20,15 +20,41 @@ type Messages struct {
 	CitySuccess     string `json:"city_success"`
 	NoFavorites     string `json:"no_favorites"`
 	NoConcerts      string `json:"no_concerts"`
+	WaitForConcerts string `json:"wait_for_concerts"`
+}
+
+type Database struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	DBname   string `json:"db_name"`
+}
+
+type TokensAndSecrets struct {
+	TelegramApiToken    string
+	SpotifyClientID     string
+	SpotifyClientSecret string
+	TimepadApiToken     string
+}
+
+type TLS struct {
+	TLScrtPath string `json:"tls_crt_path"`
+	TLSkeyPath string `json:"tls_key_path"`
+}
+
+type Timepad struct {
+	ApiURL             string `json:"api_url"`
+	ConcertsCategoryID string `json:"concerts_category_id"`
 }
 
 type Config struct {
-	TelegramApiToken    string   `json:"telegram_api_token"`
-	SpotifyClientID     string   `json:"spotify_client_id"`
-	SpotifyClientSecret string   `json:"spotify_client_secret"`
-	TimepadApiToken     string   `json:"timepad_api_token"`
-	AuthServerURL       string   `json:"auth_server_url"`
-	Messages            Messages `json:"messages"`
+	TokensAndSecrets
+	AuthServerURL string   `json:"auth_server_url"`
+	Messages      Messages `json:"messages"`
+	Database      Database `json:"database"`
+	TLS           TLS      `json:"tls"`
+	Timepad       Timepad  `json:"timepad"`
 }
 
 var cfg *Config
@@ -55,6 +81,11 @@ func loadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+
+	cfg.TelegramApiToken = os.Getenv("TELEGRAM_API_TOKEN")
+	cfg.SpotifyClientID = os.Getenv("SPOTIFY_CLIENT_ID")
+	cfg.SpotifyClientSecret = os.Getenv("SPOTIFY_CLIENT_SECRET")
+	cfg.Database.Password = os.Getenv("POSTGRES_PASSWORD")
 
 	return &cfg, nil
 }

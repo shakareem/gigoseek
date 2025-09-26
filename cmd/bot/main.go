@@ -10,7 +10,10 @@ import (
 )
 
 func main() {
-	storage := storage.NewInMemoryStorage()
+	storage, err := storage.NewPostgresStorage()
+	if err != nil {
+		log.Fatal("Failed to open database:", err)
+	}
 
 	cfg := config.Get()
 	if cfg.TelegramApiToken == "" || cfg.SpotifyClientID == "" || cfg.SpotifyClientSecret == "" {
@@ -19,7 +22,7 @@ func main() {
 
 	botAPI, err := tgbotapi.NewBotAPI(cfg.TelegramApiToken)
 	if err != nil {
-		log.Fatal("cannot create bot", err)
+		log.Fatal("Failed to create bot:", err)
 	}
 
 	authUpdates := make(chan int64, 100)
@@ -27,7 +30,7 @@ func main() {
 	authServer := telegram.NewAuthServer(storage, authUpdates)
 	go func() {
 		if err := authServer.Run(); err != nil {
-			log.Fatal("cannot start auth server", err)
+			log.Fatal("Failed to start auth server:", err)
 		}
 	}()
 

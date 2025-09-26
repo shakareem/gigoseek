@@ -7,29 +7,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Storage interface {
-	SaveState(state string, chatID int64) error
-	GetChatIDbyState(state string) (int64, error)
-	DeleteState(state string) error
-
-	SaveToken(chatID int64, token oauth2.Token) error
-	GetToken(chatID int64) (oauth2.Token, error)
-	DeleteToken(chatID int64) error
-
-	SaveCity(chatID int64, city string) error
-	GetCity(chatID int64) (string, error)
-	DeleteCity(chatID int64) error
-
-	SaveChatState(chatID int64, state ChatState) error
-	GetChatState(chatID int64) (ChatState, error)
-	DeleteChatState(chatID int64) error
-}
-
-type ChatState int
-
-// мб хранить города в отдельной таблице
-
-// tmp
 type InMemoryStorage struct {
 	states     map[string]int64
 	tokens     map[int64]oauth2.Token

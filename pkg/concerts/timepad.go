@@ -27,9 +27,6 @@ type EventsResponse struct {
 	Total  int     `json:"total"`
 }
 
-const concertsCategoryID = "460"
-const timepadAPIBaseURL = "https://api.timepad.ru/v1/events.json"
-
 func GetTimepadConcerts(artists []string, city string) []Event {
 	concerts := []Event{}
 	for _, artist := range artists {
@@ -46,11 +43,11 @@ func GetTimepadConcerts(artists []string, city string) []Event {
 
 func getArtistConcert(artist, city string) ([]Event, error) {
 	params := url.Values{}
-	params.Add("category_ids", concertsCategoryID)
+	params.Add("category_ids", config.Get().Timepad.ConcertsCategoryID)
 	params.Add("cities", city)
 	params.Add("keywords", artist)
 
-	fullURL := timepadAPIBaseURL + "?" + params.Encode()
+	fullURL := config.Get().Timepad.ApiURL + "?" + params.Encode()
 
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
