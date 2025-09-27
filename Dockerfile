@@ -7,8 +7,7 @@ RUN go mod download
 COPY cmd cmd
 COPY pkg pkg
 COPY configs configs
-COPY scripts scripts
 
-RUN go build -o ./.bin/bot ./cmd/bot
+RUN go build -v -o ./.bin/bot ./cmd/bot
 
 CMD ["./.bin/bot"]

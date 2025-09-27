@@ -2,14 +2,14 @@ services:
   app:
     build: .
     command: "./.bin/bot"
-    ports:
-      - 8080:8080
+    expose:
+      - "8080"
     depends_on:
       - db
-    volumes:
-      - ./.tls:/tls:Z
     env_file:
       - .env
+    networks:
+      - backend
 
   db:
     restart: always
@@ -17,7 +17,37 @@ services:
     env_file:
       - .env
     ports:
-      - 5433:5432
+      - "5433:5432"
     volumes:
-    - ./.postgres:/var/lib/postgresql:Z
-    - ./db/init:/docker-entrypoint-initdb.d:Z
+      - ./.postgres:/var/lib/postgresql:Z
+      - ./db/init:/docker-entrypoint-initdb.d:Z
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certbot:/var/www/certbot:ro
+      - ./letsencrypt:/etc/letsencrypt
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    networks:
+      - backend
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./letsencrypt:/etc/letsencrypt
+      - ./nginx/certbot:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge

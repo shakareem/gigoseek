@@ -78,8 +78,8 @@ func (s *AuthServer) Run() error {
 		}
 	}()
 
-	log.Println("Starting auth server")
-	return s.server.ListenAndServeTLS(config.Get().TLS.TLScrtPath, config.Get().TLS.TLSkeyPath)
+	log.Printf("Starting auth server on %v", redirectURL)
+	return s.server.ListenAndServe()
 }
 
 func (s *AuthServer) completeAuth(w http.ResponseWriter, r *http.Request) {
