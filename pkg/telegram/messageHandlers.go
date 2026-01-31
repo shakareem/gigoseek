@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -177,16 +178,16 @@ func (b *Bot) handleConcerts(chatID int64) error {
 		return b.sendMessage(chatID, messages.NoConcerts)
 	}
 
-	text := fmt.Sprintf("Найдено %d событий:\n\n", len(events))
+	var sBuilder strings.Builder
+	sBuilder.WriteString(fmt.Sprintf("Найдено %d событий:\n\n", len(events)))
 	for _, event := range events {
-		text += fmt.Sprintf("Название: %s\nВремя начала:%s\nСсылка: %s\n\n",
+		sBuilder.WriteString(fmt.Sprintf("Название: %s\nВремя начала:%s\nСсылка: %s\n\n",
 			event.Name,
 			event.StartsAt,
-			event.URL)
+			event.URL))
 	}
 
-	return b.sendMessage(chatID, text)
-
+	return b.sendMessage(chatID, sBuilder.String())
 }
 
 func (b *Bot) getFavoriteArtistsNames(chatID int64) ([]string, error) {
