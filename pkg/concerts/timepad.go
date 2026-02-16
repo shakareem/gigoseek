@@ -27,8 +27,10 @@ type EventsResponse struct {
 	Total  int     `json:"total"`
 }
 
-func GetTimepadConcerts(artists []string, city string) []Event {
-	concerts := []Event{}
+type TimepadConcertProvider struct{}
+
+func (p *TimepadConcertProvider) GetConcerts(artists []string, city string) []Concert {
+	concerts := []Concert{}
 	for _, artist := range artists {
 		artistConcerts, err := getArtistConcert(artist, city)
 		if err != nil {
@@ -41,7 +43,7 @@ func GetTimepadConcerts(artists []string, city string) []Event {
 	return concerts
 }
 
-func getArtistConcert(artist, city string) ([]Event, error) {
+func getArtistConcert(artist, city string) ([]Concert, error) {
 	params := url.Values{}
 	params.Add("category_ids", config.Get().Timepad.ConcertsCategoryID)
 	params.Add("cities", city)
@@ -71,5 +73,17 @@ func getArtistConcert(artist, city string) ([]Event, error) {
 		return nil, err
 	}
 
-	return result.Values, nil
+	concerts := make([]Concert, len(result.Values))
+	for i, c := range result.Values {
+		concerts[i] = Concert{
+			Name:        c.Name,
+			Description: c.Description,
+			StartsAt:    c.StartsAt,
+			City:        c.Location.City,
+			Address:     c.Location.Address,
+			URL:         c.URL,
+		}
+	}
+
+	return concerts, nil
 }

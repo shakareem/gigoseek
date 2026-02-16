@@ -8,7 +8,6 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/shakareem/gigoseek/pkg/concerts"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/zmb3/spotify/v2"
 	"golang.org/x/oauth2"
@@ -172,19 +171,19 @@ func (b *Bot) handleConcerts(chatID int64) error {
 		return err
 	}
 
-	events := concerts.GetTimepadConcerts(artists, city)
+	concerts := b.concertsProvider.GetConcerts(artists, city)
 
-	if len(events) == 0 {
+	if len(concerts) == 0 {
 		return b.sendMessage(chatID, messages.NoConcerts)
 	}
 
 	var sBuilder strings.Builder
-	sBuilder.WriteString(fmt.Sprintf("Найдено %d событий:\n\n", len(events)))
-	for _, event := range events {
+	sBuilder.WriteString(fmt.Sprintf("Найдено %d событий:\n\n", len(concerts)))
+	for _, c := range concerts {
 		sBuilder.WriteString(fmt.Sprintf("Название: %s\nВремя начала:%s\nСсылка: %s\n\n",
-			event.Name,
-			event.StartsAt,
-			event.URL))
+			c.Name,
+			c.StartsAt,
+			c.URL))
 	}
 
 	return b.sendMessage(chatID, sBuilder.String())

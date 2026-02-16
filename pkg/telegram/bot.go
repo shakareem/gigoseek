@@ -5,6 +5,7 @@ import (
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shakareem/gigoseek/pkg/concerts"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/shakareem/gigoseek/pkg/storage"
 	"golang.org/x/oauth2"
@@ -28,17 +29,23 @@ type Storage interface {
 	DeleteChatState(chatID int64) error
 }
 
-type Bot struct {
-	botAPI      *tgbotapi.BotAPI
-	storage     Storage
-	authUpdates <-chan int64
+type ConcertsProvider interface {
+	GetConcerts(artists []string, city string) []concerts.Concert
 }
 
-func NewBot(botAPI *tgbotapi.BotAPI, storage Storage, authUpdates <-chan int64) *Bot {
+type Bot struct {
+	botAPI           *tgbotapi.BotAPI
+	storage          Storage
+	concertsProvider ConcertsProvider
+	authUpdates      <-chan int64
+}
+
+func NewBot(botAPI *tgbotapi.BotAPI, storage Storage, concertsProvider ConcertsProvider, authUpdates <-chan int64) *Bot {
 	return &Bot{
-		botAPI:      botAPI,
-		storage:     storage,
-		authUpdates: authUpdates,
+		botAPI:           botAPI,
+		storage:          storage,
+		concertsProvider: concertsProvider,
+		authUpdates:      authUpdates,
 	}
 }
 

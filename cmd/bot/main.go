@@ -4,6 +4,7 @@ import (
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shakareem/gigoseek/pkg/concerts"
 	"github.com/shakareem/gigoseek/pkg/config"
 	"github.com/shakareem/gigoseek/pkg/storage"
 	"github.com/shakareem/gigoseek/pkg/telegram"
@@ -34,7 +35,9 @@ func main() {
 		}
 	}()
 
-	bot := telegram.NewBot(botAPI, storage, authUpdates)
+	concertsProvider := &concerts.TimepadConcertProvider{}
+
+	bot := telegram.NewBot(botAPI, storage, concertsProvider, authUpdates)
 
 	bot.Start()
 }
